@@ -1,11 +1,20 @@
 [project]
 name = "resume_builder"
 version = "0.1.0"
-description = "resume-builder using crewAI"
+description = "AI Resume Builder using CrewAI and Streamlit"
 authors = [{ name = "Your Name", email = "you@example.com" }]
 requires-python = ">=3.10,<3.14"
 dependencies = [
-    "crewai[tools]>=0.134.0,<1.0.0"
+    "crewai[tools]>=0.134.0,<1.0.0",
+    "pysqlite3-binary == 0.5.4",
+    "streamlit>=1.28.0",
+    "reportlab>=3.6.0",
+    "python-docx>=0.8.11",
+    "langchain-openai>=0.1.0",
+    "openai>=1.0.0",
+    "tenacity>=8.0.0",
+    "pydantic>=2.0.0",
+    "typing-extensions>=4.0.0"
 ]
 
 [project.scripts]
@@ -21,3 +30,6 @@ build-backend = "hatchling.build"
 
 [tool.crewai]
 type = "crew"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/resume_builder"]

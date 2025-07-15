@@ -1,3 +1,8 @@
+__import__('pysqlite3')
+import sys
+sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
+sys.modules["sqlite3.dbapi2"] = sys.modules["pysqlite3.dbapi2"]
+
 import streamlit as st
 import os
 from io import BytesIO
@@ -8,8 +13,10 @@ from reportlab.lib.units import inch
 from docx import Document
 from docx.shared import Inches
 import sys
-sys.path.append('tools')
-from src.resume_builder.crew import ResumeBuilderCrew
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
+
+from resume_builder.crew import ResumeBuilderCrew
 
 def create_pdf_resume(resume_content):
     """Create PDF resume from content"""
@@ -62,6 +69,12 @@ def main():
     
     st.title("🚀 AI Resume Builder")
     st.markdown("Generate professional resumes using AI")
+    
+    # Initialize session state
+    if 'generate_resume' not in st.session_state:
+        st.session_state.generate_resume = False
+    if 'user_info' not in st.session_state:
+        st.session_state.user_info = ""
     
     # Sidebar for API key
     with st.sidebar:
@@ -124,6 +137,7 @@ def main():
                         """
                         
                         st.session_state.user_info = user_info
+                        st.session_state.job_title = job_title
                         st.session_state.generate_resume = True
         
         else:  # Upload Raw Resume
@@ -144,6 +158,7 @@ def main():
                     else:
                         enhanced_info = f"Target Job Title: {job_title}\n\nRaw Resume Content:\n{user_info}"
                         st.session_state.user_info = enhanced_info
+                        st.session_state.job_title = job_title
                         st.session_state.generate_resume = True
     
     with col2:
@@ -156,7 +171,8 @@ def main():
                     crew = ResumeBuilderCrew(api_key)
                     
                     # Generate resume
-                    result = crew.run(st.session_state.user_info)
+                    job_title = st.session_state.get('job_title', 'Professional')
+                    result = crew.run(st.session_state.user_info, job_title)
                     
                     # Display result
                     st.success("Resume generated successfully!")
@@ -168,22 +184,28 @@ def main():
                     col_pdf, col_word = st.columns(2)
                     
                     with col_pdf:
-                        pdf_buffer = create_pdf_resume(result)
-                        st.download_button(
-                            label="Download PDF",
-                            data=pdf_buffer,
-                            file_name="resume.pdf",
-                            mime="application/pdf"
-                        )
+                        try:
+                            pdf_buffer = create_pdf_resume(result)
+                            st.download_button(
+                                label="Download PDF",
+                                data=pdf_buffer,
+                                file_name="resume.pdf",
+                                mime="application/pdf"
+                            )
+                        except Exception as e:
+                            st.error(f"Error creating PDF: {str(e)}")
                     
                     with col_word:
-                        word_buffer = create_word_resume(result)
-                        st.download_button(
-                            label="Download Word",
-                            data=word_buffer,
-                            file_name="resume.docx",
-                            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                        )
+                        try:
+                            word_buffer = create_word_resume(result)
+                            st.download_button(
+                                label="Download Word",
+                                data=word_buffer,
+                                file_name="resume.docx",
+                                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                            )
+                        except Exception as e:
+                            st.error(f"Error creating Word document: {str(e)}")
                     
                     # Reset the flag
                     st.session_state.generate_resume = False
